@@ -1,0 +1,78 @@
+---
+title: 'NewIndexUpLoad'
+author: "Brooke Mills"
+date: "2023-09-07"
+output: pdf_document
+---
+
+```{r, warning=FALSE}
+library(tidyverse)
+library(sf)
+library(ggspatial)
+library(spData)
+library(shapefiles)
+
+data <- read_sf("cejst.shp")
+data1 <- read_sf("cejst.shx") #uploading .shx file into R 
+data
+
+ga <- data %>%
+  filter(SF == "Georgia") # filtering out the unnecessary rows
+view(ga)
+
+#view(data1) #my attempt to view the shx file, whenever I run this it crashes R
+```
+
+
+
+```{r}
+#adding a new row into R
+ga2 <- ga %>%
+  mutate(dm_nw = 1-DM_W)
+ga2 
+
+#trying out visualization
+ggplot() +
+  geom_sf(data = ga2, aes(fill = dm_nw)) + scale_fill_gradient(low = "white", high = "blue") 
+```
+
+
+```{r}
+# creating the new columns up the 1/0 scores from each bucket and totaling
+ga3 <- ga %>%
+  mutate(CCN = ((EAL_ET) + (EBL_ET) + (EPL_ET) + (FLD_ET) + (WFR_ET))/5) %>%
+  mutate(EEN = ((EB_ET)+ (PM25_ET))/2) %>%
+  mutate(HHN = ((A_ET) +(DB_ET) + (HD_ET) + (LLE_ET))/4) %>%
+  mutate(HSN = ((HB_ET) + (KP_ET) + (LPP_ET))/3) %>%
+  mutate(LPN = ((AML_ET) + (FUDS_ET) + (TSDF_ET) + (NPL_ET) + (RMP_ET))/5) %>%
+  mutate(TTN = ((DS_ET) + (TD_ET) + (TP_ET))/3) %>%
+  mutate(WWN = ((UST_ET) + (WD_ET))/2) %>%
+  mutate(WDN = ((LISO_ET) + (IA_LMI_ET) + (IA_POV_ET) + (IA_UN_ET) + (IALHE))/5) %>%
+  mutate(Total = (CCN + EEN + HHN + HSN + LPN + TTN + WWN + WDN))
+ga3
+view(ga3) #viewing new dataset
+
+st_write(ga3, "CJESTshp.shp") #exporting the new dataset as a .shp file
+st_write(ga3, "CJEST2.shx", driver = 'ESRI Shapefile') # gives shp, shx, and dbf files, hopefully functional!
+
+# trying to use the new package
+#convert.to.shapefile(ga3) 
+#write.shapefile(ga3, "CJESTall", arcgis = FALSE)
+#write.shp(ga3, "CJESTxx")
+
+# gives warnings when run, I think because there are characters in the dataframe. I don't understand the arguments the convert function needs. I'll keep digging. 
+
+
+```
+
+
+```{r}
+
+listnew <- ga3 %>%
+  select(GEOID10, CF, Total) %>%
+  st_drop_geometry() %>%
+  arrange(desc(Total))
+listnew
+
+st_write(listnew, "orderedburdenedlist.csv")
+```
